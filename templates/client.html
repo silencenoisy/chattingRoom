@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>聊天室</title>
+    <style>
+        .chat_item{
+            background: cyan;
+            border-radius: 20px;
+            margin-top: 30px;
+            padding: 20px;
+        }
+        .chat-content{
+            background: lightblue;
+            padding: 5px;
+        }
+        .sendUser{
+            background: gray;
+            padding: 5px;
+        }
+        .chat_item_broadcast{
+            background: red;
+        }
+    </style>
+    <script type="text/javascript" src="//cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://cdn.socket.io/3.1.2/socket.io.js"></script>
+<!--    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>-->
+    <script type="text/javascript">
+        // var io = require('socket.io').listen(server);
+        // let socket = require('socket.io-client')('http://localhost:5000/test');
+        $(document).ready(function() {
+            // var io = require('socket.io').listen(server);
+            namespace = '/test';　
+
+            window.socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+            window.username = {{ user }};
+            window.room_num = {{ room }};
+            socket.on('connect',function (ret) {
+                socket.emit('join', {data: {'user':username,"room":room_num}});
+            });
+
+
+            socket.on('message',function (ret) {
+                var chatdatashow = document.getElementById("chatting-data");
+                var messages = ret;
+                var chat_item = document.createElement("div");
+                chat_item.classList.add("chat_item");
+                var chat_content_div = document.createElement("div");
+                chat_content_div.classList.add("chat-content");
+                chat_content_div.innerText = messages;
+                chat_item.appendChild(chat_content_div);
+
+                chatdatashow.appendChild(chat_item);
+            });
+
+            socket.on('show_chat',function (ret) {
+                var chatdatashow = document.getElementById("chatting-data");
+                var senduser = ret['data']['user'];
+                var chat_content = ret['data']['content'];
+                var chat_item = document.createElement("div");
+                chat_item.classList.add("chat_item");
+                var sendUser = document.createElement("h2");
+                sendUser.classList.add("sendUser");
+                sendUser.innerText = "用户："+senduser;
+                var chat_content_div = document.createElement("div");
+                chat_content_div.classList.add("chat-content");
+                chat_content_div.innerText = chat_content;
+                chat_item.appendChild(sendUser);
+                chat_item.appendChild(chat_content_div);
+
+                chatdatashow.appendChild(chat_item);
+                // alert(chat_content)
+
+            });
+
+            socket.on('show_chat_broadcast',function (ret) {
+                var chatdatashow = document.getElementById("chatting-data");
+                var senduser = ret['data']['user'];
+                var chat_content = ret['data']['content'];
+                var chat_item = document.createElement("div");
+                chat_item.classList.add("chat_item");
+                chat_item.classList.add("chat_item_broadcast");
+                var sendUser = document.createElement("h2");
+                sendUser.classList.add("sendUser");
+                sendUser.innerText = "(来自房间"+ret['data']['room']+"的广播)用户："+senduser;
+                var chat_content_div = document.createElement("div");
+                chat_content_div.classList.add("chat-content");
+                chat_content_div.innerText = chat_content;
+                chat_item.appendChild(sendUser);
+                chat_item.appendChild(chat_content_div);
+
+                chatdatashow.appendChild(chat_item);
+                // alert(chat_content)
+
+            })
+
+            socket.on("left_room",function (ret) {
+                window.location = location.protocol + '//' + document.domain + ':' + location.port;
+            })
+
+
+        });
+    </script>
+</head>
+<body>
+
+    <div>
+        <label id="error-message"></label>
+    </div>
+<div>
+    <div>
+        <h1 id="room_num_lable">房间号：{{room}},用户名：{{user}}</h1>
+    </div>
+    <button id="left-room-btn" onclick="LeftRoom()">退出</button>
+    <label>输入聊天内容</label>
+    <input type="text" id="chat-input">
+    <button id="submit-chat-context-broadcast" onclick="SubmitChatDataBroadCast()">广播</button>
+    <button id="submit-chat-context" onclick="SubmitChatData()">发送</button>
+</div>
+    <div id="log"><h2>聊天信息</h2></div>
+    <div id="chatting-data"></div>
+</body>
+<script type="text/javascript">
+    function SubmitChatDataBroadCast() {
+        var chatinput = document.getElementById("chat-input");
+        var chatdata = chatinput.value;
+        chatinput.value = null;
+        if(chatinput!=null){
+             socket.emit('sumbit_chat_broadcast',{data:{"content":chatdata,"user":username,"room":room_num}})
+        }
+
+    }
+    function SubmitChatData() {
+        var chatinput = document.getElementById("chat-input");
+        var chatdata = chatinput.value;
+        chatinput.value = null;
+        if(chatinput!=null){
+             socket.emit('sumbit_chat',{data:{"content":chatdata,"user":username,"room":room_num}})
+        }
+
+    }
+
+    function LeftRoom() {
+        socket.emit('leave',{data:{"user":username,"room":room_num}})
+    }
+</script>
+</html>
